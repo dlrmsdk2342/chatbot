@@ -2,6 +2,8 @@
 
 import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { db } from "@/firebase";
 
 import { Chat } from "@/components/Chat";
 
@@ -28,6 +30,17 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const saveMessage = async (message) => {
+    try {
+      await addDoc(collection(db, "messages"), {
+        ...message,
+        createdAt: Timestamp.fromDate(new Date()),
+      });
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+  };
+
   // 메시지를 전송하는 함수
   const handleSend = async (message) => {
     // message 를 받아 메시지 목록에 추가
@@ -40,6 +53,8 @@ export default function Home() {
     setMessages(updatedMessages);
     // 메시지 전송 중임을 표시
     setLoading(true);
+
+    await saveMessage(message);
 
     // /api/chat 에 메시지 목록을 전송하고 응답을 받음
     const response = await fetch("/api/chat", {
@@ -72,6 +87,8 @@ export default function Home() {
     // 로딩 상태를 해제하고, 메시지 목록에 응답을 추가
     setLoading(false);
     setMessages((messages) => [...messages, result]);
+    
+    await saveMessage(result);
   };
 
   // 메시지 목록을 초기화하는 함수
